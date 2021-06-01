@@ -1,12 +1,20 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
-using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace StockServer
 {
+    class stock
+    {
+        public string name { get; set; }
+        public double bidPrice { get; set; }
+        public double askPrice { get; set; }
+    }
     class Program
     {
         
@@ -50,9 +58,10 @@ namespace StockServer
             Array.Copy(buffer, databuf, received);
 
             string text = Encoding.ASCII.GetString(databuf);
-            Console.WriteLine("Text received: " + text);
+            Console.WriteLine("Request received: " + text);
 
             string response = string.Empty;
+
 
             if (text.ToLower() != "get stockprice")
             {
@@ -60,26 +69,39 @@ namespace StockServer
             }
             else
             {
-                fetchStockData();
-                response = IBMPrice.ToString();
+                var UpdatedStocks = fetchStockData();
+                response = JsonConvert.SerializeObject(UpdatedStocks, Formatting.Indented);
+                
             }
 
-            byte[] data = Encoding.ASCII.GetBytes(response);
+            byte[] data = Encoding.UTF8.GetBytes(response);
             socket.BeginSend(data, 0, data.Length, SocketFlags.None, new AsyncCallback(SendCallBack), socket);
             socket.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallBack), socket);
 
         }
-        
-        private static void fetchStockData()
-        {
-            Random r = new Random();
-            int BullOrBear = r.Next(-1, 1);
-            GooglePrice = UpORDown(GooglePrice, BullOrBear);
-            IBMPrice = UpORDown(IBMPrice, BullOrBear);
-            ApplePrice = UpORDown(ApplePrice, BullOrBear);
 
-        }
-        private static double UpORDown(double stockprice, int BullOrBear) 
+        
+        private static List<stock> fetchStockData()
+        {
+            List<stock> stocks = new List<stock>();
+            Random r = new Random();
+            int value = r.Next(-1, 1);
+
+            GooglePrice = BullOrBear(GooglePrice, value);
+            IBMPrice = BullOrBear(IBMPrice, value);
+            ApplePrice = BullOrBear(ApplePrice, value);
+
+            stock apple = new stock() { name = "Apple", bidPrice = ApplePrice + 2, askPrice = ApplePrice };
+            stock ibm = new stock() { name = "IBM", bidPrice = IBMPrice + 2, askPrice = IBMPrice, };
+            stock google = new stock() { name = "Google", bidPrice = GooglePrice + 2, askPrice = GooglePrice };
+
+            stocks.Add(apple);
+            stocks.Add(ibm);
+            stocks.Add(google);
+            return stocks;
+
+    }
+        private static double BullOrBear(double stockprice, int BullOrBear) 
         {
             Random r = new Random();
             if (BullOrBear >= 0)
