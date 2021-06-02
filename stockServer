@@ -115,7 +115,6 @@ namespace StockServer
             return stockprice;
         }
 
-
         private static void SendCallBack(IAsyncResult AR)
         {
             Socket socket = (Socket)AR.AsyncState;
